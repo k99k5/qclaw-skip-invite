@@ -2,14 +2,15 @@
   "name": "qclaw-skip-invite",
   "version": "0.0.1",
   "description": "Skip QClaw invite code verification",
-  "type": "module",
   "bin": {
-    "qclaw-skip-invite": "./patch.sh"
+    "qclaw-skip-invite": "./dist/patch.js"
   },
   "files": [
-    "patch.sh"
+    "dist/patch.js"
   ],
   "scripts": {
+    "build": "bun build patch.ts --outfile dist/patch.js --target node --format cjs --banner '#!/usr/bin/env node' && chmod +x dist/patch.js",
+    "prerelease": "bun run build",
     "release": "release-it"
   },
   "publishConfig": {
@@ -17,6 +18,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^25.4.0",
     "release-it": "^19.2.4"
   }
 }

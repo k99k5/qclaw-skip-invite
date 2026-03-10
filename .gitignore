@@ -5,3 +5,4 @@ bun.lock
 claude.md
 .claude/
 .npmrc
+dist/
