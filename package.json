@@ -12,6 +12,9 @@
   "scripts": {
     "release": "release-it"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "license": "MIT",
   "devDependencies": {
     "release-it": "^19.2.4"
