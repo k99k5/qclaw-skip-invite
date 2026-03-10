@@ -4,7 +4,7 @@
 
 ## 支持
 
-- QClaw macOS 所有版本（Apple 芯片 / Intel 芯片）
+- QClaw v0.1.1 / v0.1.2（macOS Apple 芯片 / Intel 芯片）
 
 ## 使用
 
@@ -12,7 +12,7 @@
 npx qclaw-skip-invite
 ```
 
-完成后重启 QClaw 即可。该命令可重复执行，已打过补丁会自动跳过。
+如果 QClaw 正在运行，工具会自动关闭并在完成后重启。该命令可重复执行，已打过补丁会自动跳过。
 
 ## 还原
 
