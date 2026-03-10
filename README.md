@@ -1,6 +1,6 @@
-# [QClaw](https://claw.guanjia.qq.com/) Skip Invite
+# QClaw Skip Invite
 
-跳过 QClaw 应用的邀请码验证，去除启动时的邀请码弹窗。
+跳过 [QClaw](https://claw.guanjia.qq.com/) 应用的邀请码验证，去除启动时的邀请码弹窗。
 
 ## 支持
 
