@@ -6,6 +6,13 @@ import { join, basename } from "node:path";
 const APP_PATH = "/Applications/QClaw.app";
 const ASAR_PATH = join(APP_PATH, "Contents/Resources/app.asar");
 
+// Check Node version >= 22 (required by @electron/asar)
+const nodeVersion = parseInt(process.versions.node.split(".")[0]);
+if (nodeVersion < 22) {
+  console.error(`ERROR: Node >= 22 required (current: ${process.versions.node}).`);
+  process.exit(1);
+}
+
 // Check if QClaw is running
 let wasRunning = false;
 try {
@@ -48,31 +55,74 @@ try {
 
   // Patch: set inviteVerified default to true
   let code = readFileSync(targetFile, "utf8");
-  const pattern = /(const \w+=Z\()!1(\),\s*\w+=async \w+=>\{var \w+,\w+,\w+;\s*if\(\w+\.value\)\{await \w+\(\);return\})/;
-  const patchedCheck = /(const \w+=Z\()!0(\),\s*\w+=async \w+=>\{var \w+,\w+,\w+;\s*if\(\w+\.value\)\{await \w+\(\);return\})/;
 
-  if (patchedCheck.test(code)) {
+  // Find the variable name mapped to inviteCodeVerified in the return object
+  const retMatch = code.match(/inviteCodeVerified:(\w+)/);
+  if (!retMatch) {
+    console.error("ERROR: Could not find inviteCodeVerified in return object");
+    process.exit(1);
+  }
+  const varName = retMatch[1];
+
+  // Search backwards from the return to find where varName is initialized as ref(!1)
+  const retPos = code.indexOf(retMatch[0]);
+  const searchStart = Math.max(0, retPos - 30000);
+  const chunk = code.slice(searchStart, retPos);
+
+  const refPattern = new RegExp(
+    `((?<![a-zA-Z0-9_$])${varName}=\\w+\\()(!0|!1)(\\))`, "g"
+  );
+  const matches = [...chunk.matchAll(refPattern)];
+
+  if (matches.length === 0) {
+    console.error(`ERROR: Could not find ref initialization for ${varName}`);
+    process.exit(1);
+  }
+
+  // Use the last match (closest to the return statement)
+  const lastMatch = matches[matches.length - 1];
+  const matchOffset = searchStart + lastMatch.index!;
+
+  if (lastMatch[2] === "!0") {
     console.log("==> Already patched, skipping");
-  } else if (pattern.test(code)) {
-    code = code.replace(pattern, "$1!0$2");
+  } else {
+    const patched = lastMatch[1] + "!0" + lastMatch[3];
+    code = code.slice(0, matchOffset) + patched + code.slice(matchOffset + lastMatch[0].length);
     writeFileSync(targetFile, code);
     console.log("==> Patched: inviteVerified default set to true");
-  } else {
-    console.error(`ERROR: Patch pattern not found in ${basename(targetFile)}`);
-    console.error("       The app version may have changed. Manual inspection needed.");
-    process.exit(1);
   }
 
   console.log("==> Repacking app.asar...");
   execSync(`npx --yes @electron/asar pack "${join(workDir, "app")}" "${join(workDir, "app-patched.asar")}"`, { stdio: "inherit" });
 
-  console.log("==> Backing up original app.asar...");
-  cpSync(ASAR_PATH, `${ASAR_PATH}.bak`);
-
-  console.log("==> Replacing with patched app.asar...");
+  console.log("==> Replacing app.asar...");
   cpSync(join(workDir, "app-patched.asar"), ASAR_PATH);
 
-  console.log(`==> Done! Backup saved at: ${ASAR_PATH}.bak`);
+  // Disable Electron's asar integrity validation fuse
+  const electronBin = join(APP_PATH, "Contents/Frameworks/Electron Framework.framework/Electron Framework");
+  const FUSE_SENTINEL = "dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX";
+  const FUSE_ASAR_INTEGRITY_INDEX = 4;
+
+  const bin = Buffer.from(readFileSync(electronBin));
+  const sentinelPos = bin.indexOf(FUSE_SENTINEL);
+  if (sentinelPos === -1) {
+    console.error("ERROR: Could not find Electron fuse sentinel");
+    process.exit(1);
+  }
+  // Fuse wire: sentinel(32) + version(1) + count(1) + fuse_bytes(ascii '0'/'1')
+  const fuseOffset = sentinelPos + FUSE_SENTINEL.length + 2 + FUSE_ASAR_INTEGRITY_INDEX;
+  if (bin[fuseOffset] === 0x31) { // '1' = enabled
+    bin[fuseOffset] = 0x30;       // '0' = disabled
+    writeFileSync(electronBin, bin);
+    console.log("==> Disabled asar integrity validation fuse");
+  }
+
+  // Re-sign the app (required after modifying binary/asar)
+  console.log("==> Re-signing app...");
+  execSync(`codesign --remove-signature "${APP_PATH}"`, { stdio: "inherit" });
+  execSync(`codesign --force --deep --sign - "${APP_PATH}"`, { stdio: "inherit" });
+
+  console.log("==> Done!");
 
   if (wasRunning) {
     console.log("==> Restarting QClaw...");
