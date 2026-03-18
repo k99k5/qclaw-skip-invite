@@ -131,24 +131,31 @@ if (nodeVersion < 22) {
     }
     const varName = retMatch[1];
 
-    // Search backwards from the return to find where varName is initialized as ref(!1)
+    // Search backwards from the return statement with exponentially expanding range
     const retPos = code.indexOf(retMatch[0]);
-    const searchStart = Math.max(0, retPos - 30000);
-    const chunk = code.slice(searchStart, retPos);
-
     const refPattern = new RegExp(
       `((?<![a-zA-Z0-9_$])${varName}=\\w+\\()(!0|!1)(\\))`, "g"
     );
-    const matches = [...chunk.matchAll(refPattern)];
 
-    if (matches.length === 0) {
+    let lastMatch: RegExpExecArray | null = null;
+    let matchOffset = 0;
+    for (let range = 10000; range <= retPos; range *= 2) {
+      const searchStart = Math.max(0, retPos - range);
+      const chunk = code.slice(searchStart, retPos);
+      refPattern.lastIndex = 0;
+      const matches = [...chunk.matchAll(refPattern)];
+      if (matches.length > 0) {
+        lastMatch = matches[matches.length - 1];
+        matchOffset = searchStart + lastMatch.index!;
+        break;
+      }
+      if (searchStart === 0) break;
+    }
+
+    if (!lastMatch) {
       console.error(`ERROR: Could not find ref initialization for ${varName}`);
       process.exit(1);
     }
-
-    // Use the last match (closest to the return statement)
-    const lastMatch = matches[matches.length - 1];
-    const matchOffset = searchStart + lastMatch.index!;
 
     if (lastMatch[2] === "!0") {
       console.log("==> Already patched, skipping");
@@ -200,8 +207,14 @@ if (nodeVersion < 22) {
         execSync(`start "" "${join(APP_PATH, "QClaw.exe")}"`, { stdio: "ignore" });
       }
     }
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    if (isWin && err?.code === "EPERM") {
+      console.error("\nERROR: 权限不足，无法写入 QClaw 安装目录。");
+      console.error("请以管理员身份运行终端后重试：");
+      console.error("  右键点击终端 → 以管理员身份运行 → 重新执行命令");
+    } else {
+      console.error(err);
+    }
     process.exit(1);
   }
 })();
