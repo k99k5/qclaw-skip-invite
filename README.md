@@ -13,7 +13,7 @@
 ## 使用
 
 ```bash
-npx qclaw-skip-invite
+npx qclaw-skip-invite@latest
 ```
 
 如果 QClaw 正在运行，工具会自动关闭并在完成后重启。该命令可重复执行，已打过补丁会自动跳过。
