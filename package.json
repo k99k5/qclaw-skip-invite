@@ -9,7 +9,7 @@
     "dist/patch.js"
   ],
   "scripts": {
-    "build": "bun build patch.ts --outfile dist/patch.js --target node --format cjs --banner '#!/usr/bin/env node' && chmod +x dist/patch.js",
+    "build": "bun build patch.ts --outfile dist/patch.js --target node --format cjs --banner '#!/usr/bin/env node'",
     "prerelease": "bun run build",
     "release": "release-it"
   },
