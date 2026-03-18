@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "description": "Skip QClaw invite code verification",
   "bin": {
-    "qclaw-skip-invite": "./dist/patch.js"
+    "qclaw-skip-invite": "dist/patch.js"
   },
   "files": [
     "dist/patch.js"
