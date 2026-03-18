@@ -20,13 +20,13 @@ npx qclaw-skip-invite@latest
 
 ## 常见问题
 
-### 补丁成功但仍无法使用微信远程等功能
+### 补丁成功但微信远程连接失败（提示「请先验证邀请码」）
 
-本工具**仅跳过客户端的邀请码输入界面**，不涉及服务器端验证。如果服务器端对邀请码做了校验限制，补丁无法绕过，这是预期行为。
+本工具**仅跳过客户端的邀请码输入界面**，不涉及服务器端验证。微信远程功能需要服务器端邀请码校验通过才能使用，补丁无法绕过。需要自行配置自定义渠道，例如企业微信渠道插件：[openclaw-plugin-wecom](https://github.com/sunnoy/openclaw-plugin-wecom)。
 
-### 大模型 / AI 功能不可用
+### 大模型提示「API key has not been activated」
 
-QClaw 内置的大模型功能依赖官方渠道，同样受服务器端限制。需要自行配置自定义渠道，例如企业微信渠道插件：[openclaw-plugin-wecom](https://github.com/sunnoy/openclaw-plugin-wecom)。
+内置大模型同样受服务器端邀请码限制，需要在设置中配置自定义大模型渠道（自行填入第三方 API key）。
 
 ## 还原
 
